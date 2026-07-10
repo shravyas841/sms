@@ -1,8 +1,11 @@
 import os
 
 from app import create_app, db
+from app.models import User
+from app.demo import DEMO_ACCOUNTS
 from sqlalchemy import text
 from sqlalchemy import inspect
+from seed_demo import seed_database
 
 app = create_app()
 
@@ -33,8 +36,30 @@ def patch_database_schema():
             print(f"Database patch warning: {e}")
 
 
+def ensure_demo_data():
+    with app.app_context():
+        try:
+            inspector = inspect(db.engine)
+            table_names = set(inspector.get_table_names())
+
+            if 'users' not in table_names:
+                db.create_all()
+                seed_database(app)
+                return
+
+            demo_login = DEMO_ACCOUNTS[0]['login']
+            admin = User.query.filter_by(email=demo_login).first()
+            if not admin:
+                seed_database(app)
+        except Exception as e:
+            print(f"Demo data setup warning: {e}")
+
+
 if auto_setup_enabled():
     patch_database_schema()
+
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+    ensure_demo_data()
 
 if __name__ == '__main__':
     app.run(debug=True)

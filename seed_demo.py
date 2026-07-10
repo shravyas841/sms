@@ -9,8 +9,8 @@ from app.demo import DEMO_ACCOUNTS
 from datetime import date, timedelta
 import random
 
-def seed_database():
-    app = create_app()
+def seed_database(app=None):
+    app = app or create_app()
     with app.app_context():
         print("\n🌱 Seeding demo data...\n")
         
