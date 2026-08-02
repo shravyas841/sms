@@ -196,9 +196,22 @@
                         aria-label="Collapse sidebar" title="Collapse sidebar">
                         <i id="sidebarCollapseIcon" class="bi bi-chevron-left"></i>
                     </button>
+                    <div class="header-context d-none d-md-block">
+                        <strong>{{ 'Admin workspace' if current_user.role == 'admin' else current_user.role|title + ' workspace' }}</strong>
+                        <span>Good to see you, {{ current_user.username }}.</span>
+                    </div>
                 </div>
 
                 <div class="header-right">
+                    <div class="header-search d-none d-xl-flex">
+                        <i class="bi bi-search"></i>
+                        <input type="search" placeholder="Search workspace" aria-label="Search workspace">
+                        <kbd>⌘ K</kbd>
+                    </div>
+                    <div class="header-date d-none d-lg-flex"><i class="bi bi-calendar3"></i> Last 30 days</div>
+                    <button type="button" class="header-icon-btn header-bell d-none d-sm-inline-flex" aria-label="Notifications">
+                        <i class="bi bi-bell"></i><span></span>
+                    </button>
                     <span class="user-info">
                         <i class="bi bi-person-circle"></i> {{ current_user.username }}
                     </span>
