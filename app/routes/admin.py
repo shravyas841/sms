@@ -78,6 +78,18 @@ def return_issued_books_for_student(student_id):
             issue.book.available_copies = min(issue.book.total_copies, issue.book.available_copies + 1)
 
 
+def delete_student_related_records(student_id):
+    """Remove records that reference a student before removing the student row.
+
+    The application supports both SQLite and PostgreSQL, and existing databases
+    may not have been created with cascading foreign keys.  Keep the cleanup
+    explicit so deleting a student works consistently on every supported schema.
+    """
+    return_issued_books_for_student(student_id)
+    for model in (BookIssue, IDCard, Attendance, Mark, Fee):
+        model.query.filter_by(student_id=student_id).delete(synchronize_session=False)
+
+
 def ensure_permission_records():
     permission_by_name = {permission.name: permission for permission in Permission.query.all()}
     created = False
@@ -250,13 +262,11 @@ def edit_student(id):
 def delete_student(id):
     student = Student.query.get_or_404(id)
     user = db.session.get(User, student.user_id)
-    return_issued_books_for_student(student.id)
-    BookIssue.query.filter_by(student_id=student.id).delete(synchronize_session=False)
-    IDCard.query.filter_by(student_id=student.id).delete(synchronize_session=False)
-    Attendance.query.filter_by(student_id=student.id).delete(synchronize_session=False)
-    Mark.query.filter_by(student_id=student.id).delete(synchronize_session=False)
-    Fee.query.filter_by(student_id=student.id).delete(synchronize_session=False)
+    delete_student_related_records(student.id)
     db.session.delete(student)
+    # Ensure the dependent profile is gone before deleting its required user.
+    # This also makes the ordering deterministic on databases enforcing FKs.
+    db.session.flush()
     if user:
         db.session.delete(user)
     db.session.commit()
@@ -820,7 +830,10 @@ def reject_user(id):
     # Cleanup profile data
     if user.role == 'student':
         student = Student.query.filter_by(user_id=user.id).first()
-        if student: db.session.delete(student)
+        if student:
+            delete_student_related_records(student.id)
+            db.session.delete(student)
+            db.session.flush()
     elif user.role == 'teacher':
         teacher = Teacher.query.filter_by(user_id=user.id).first()
         if teacher: db.session.delete(teacher)

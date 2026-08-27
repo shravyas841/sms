@@ -242,7 +242,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        document.querySelectorAll('form').forEach(form => {
+        function ensureCsrfToken(form) {
             const method = (form.getAttribute('method') || 'GET').toUpperCase();
             if (method === 'POST' && csrfToken && !form.querySelector('input[name="_csrf_token"]')) {
                 const input = document.createElement('input');
@@ -251,7 +251,12 @@
                 input.value = csrfToken;
                 form.appendChild(input);
             }
-        });
+        }
+
+        // Keep regular forms compatible with the server-side CSRF check, and
+        // cover forms inserted after the page initially loads as well.
+        document.querySelectorAll('form').forEach(ensureCsrfToken);
+        document.addEventListener('submit', event => ensureCsrfToken(event.target));
 
         document.querySelectorAll('[data-login][data-password]').forEach(button => {
             button.addEventListener('click', () => {
